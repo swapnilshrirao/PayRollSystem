@@ -32,29 +32,64 @@ public class PayrollController {
         }
     }
 
-    @PostMapping("/upload")
-    public PayrollReport uploadEmployeeData(@RequestParam("file") MultipartFile file) throws Exception {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty. Please upload a valid file.");
-        }
-        List<EmployeeEvent> employeeEvents = parseFile(file);
-        return payrollService.processPayrollData(employeeEvents);
-    }
+	/*
+	 * @PostMapping("/upload") public PayrollReport
+	 * uploadEmployeeData(@RequestParam("file") MultipartFile file) throws Exception
+	 * { if (file.isEmpty()) { throw new
+	 * IllegalArgumentException("File is empty. Please upload a valid file."); }
+	 * List<EmployeeEvent> employeeEvents = parseFile(file); return
+	 * payrollService.processPayrollData(employeeEvents); }
+	 * 
+	 * private List<EmployeeEvent> parseFile(MultipartFile file) throws Exception {
+	 * List<EmployeeEvent> events = new ArrayList<>();
+	 * 
+	 * try (BufferedReader reader = new BufferedReader(new
+	 * InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) { String
+	 * line; reader.readLine(); // Skip header
+	 * 
+	 * while ((line = reader.readLine()) != null) { String[] columns =
+	 * line.split(","); if (columns.length < 9) continue; // Skip invalid rows
+	 * 
+	 * EmployeeEvent event = new EmployeeEvent();
+	 * event.setSequenceNo(columns[0].trim()); event.setEmpId(columns[1].trim());
+	 * event.setEmpFName(columns[2].trim()); event.setEmpLName(columns[3].trim());
+	 * event.setDesignation(columns[4].trim()); event.setEvent(columns[5].trim());
+	 * event.setValue(columns[6].trim());
+	 * event.setEventDate(parseDate(columns[7].trim()));
+	 * event.setNotes(columns[8].trim());
+	 * 
+	 * events.add(event); } } return events; } }
+	 */
 
-    private List<EmployeeEvent> parseFile(MultipartFile file) throws Exception {
-        List<EmployeeEvent> events = new ArrayList<>();
-        
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            reader.readLine(); // Skip header
+
+@PostMapping("/upload")
+public PayrollReport uploadEmployeeData(@RequestParam("file") MultipartFile file) throws Exception {
+    if (file.isEmpty()) {
+        throw new IllegalArgumentException("File is empty. Please upload a valid file.");
+    }
+    List<EmployeeEvent> employeeEvents = parseFile(file);
+    return payrollService.processPayrollData(employeeEvents);
+}
+
+private List<EmployeeEvent> parseFile(MultipartFile file) throws Exception {
+    List<EmployeeEvent> events = new ArrayList<>();
+    
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] columns = line.split(",");
+            if (columns.length < 6) continue; // Skip invalid rows
             
-            while ((line = reader.readLine()) != null) {
-                String[] columns = line.split(",");
-                if (columns.length < 9) continue; // Skip invalid rows
-                
-                EmployeeEvent event = new EmployeeEvent();
-                event.setSequenceNo(columns[0].trim());
-                event.setEmpId(columns[1].trim());
+            EmployeeEvent event = new EmployeeEvent();
+            event.setSequenceNo(columns[0].trim());
+            event.setEmpId(columns[1].trim());
+
+            if ("SALARY".equalsIgnoreCase(columns[2].trim()) || "BONUS".equalsIgnoreCase(columns[2].trim()) || "REIMBURSEMENT".equalsIgnoreCase(columns[2].trim())) {
+                event.setEvent(columns[2].trim());
+                event.setValue(columns[3].trim());
+                event.setEventDate(parseDate(columns[4].trim()));
+                event.setNotes(columns[5].trim());
+            } else {
                 event.setEmpFName(columns[2].trim());
                 event.setEmpLName(columns[3].trim());
                 event.setDesignation(columns[4].trim());
@@ -62,10 +97,11 @@ public class PayrollController {
                 event.setValue(columns[6].trim());
                 event.setEventDate(parseDate(columns[7].trim()));
                 event.setNotes(columns[8].trim());
-                
-                events.add(event);
             }
+
+            events.add(event);
         }
-        return events;
     }
+    return events;
+}
 }
